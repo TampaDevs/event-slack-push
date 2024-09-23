@@ -20,16 +20,8 @@ class MeetupEvent
     parts.join(", ") + " long"
   end
 
-  def self.within_next_two_weeks?(date_string)
-    date = Date.parse(date_string)
-    today = Date.today
-    date >= today && date <= (today + 14)
-  end
-
   def self.format_slack(group)
     return if group["unifiedEvents"]["count"] == 0
-
-    return unless within_next_two_weeks?(group["unifiedEvents"]["edges"][0]["node"]["dateTime"])
 
     event_blocks = [{
       type: "section",
@@ -57,12 +49,10 @@ class MeetupEvent
           }
         ]
       },
-      {
-        type: "divider"
-      }]
+    ]
 
     if group["name"] == "Tampa Devs"
-      event_blocks[0][:text][:text].prepend(":tampadevs: ")
+      event_blocks[0][:text][:text] = ":tampadevs:" + " " + event_blocks[0][:text][:text]
     end
 
     if group["unifiedEvents"]["edges"][0]["node"]["venue"]

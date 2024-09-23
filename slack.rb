@@ -17,25 +17,33 @@ class Slack
     @message = []
   end
 
-  def self.syndicate(events, dry_run)
+  def self.syndicate(events, announcement_type, destinations, dry_run)
     return if events.empty?
 
-    @payload = payload(events)
+    @payload = payload(events, announcement_type)
 
     if dry_run
       puts message_json
     else
-      post
+      post destinations
     end
   end
 
-  def self.payload(events)
+  def self.payload(events, announcement_type)
+    header_text = case announcement_type
+      when :weekly
+        ":balloon: Happening This Week"
+      when :daily
+        ":earth_americas: Happening Today"
+      when :hourly
+        ":loudspeaker: Happening Soon"
+    end
     header = [
       {
-        type: "section",
+        type: "header",
         text: {
-          type: "mrkdwn",
-          text: ":balloon: Upcoming events:"
+          type: "plain_text",
+          text: header_text,
         }
       },
       {
@@ -44,6 +52,7 @@ class Slack
     ]
 
     footer = [
+      { type: "divider" },
       {
         type: "actions",
         elements: [
@@ -101,7 +110,12 @@ class Slack
       }
     ]
 
-    [header, events.reduce([], :concat), footer].reduce([], :concat)
+    elements = [header, events.reduce([], :concat)]
+    if @announcement_type == 'weekly'
+      elements << footer
+    end
+    
+    elements.reduce([], :concat)
   end
 
   def self.message_json
@@ -110,10 +124,12 @@ class Slack
     }.to_json
   end
 
-  def self.post
+  def self.post(destinations)
     return if @payload.length == 0
 
-    targets = [ENV["TD_SLACK_WEBHOOK"], ENV["TBT_SLACK_WEBHOOK"], ENV["TBUX_SLACK_WEBHOOK"]]
+    targets = destinations.map do |channel|
+      ENV["#{channel}_SLACK_WEBHOOK"]
+    end
 
     targets.each do |t|
       uri = URI.parse(t)

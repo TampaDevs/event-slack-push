@@ -1,0 +1,24 @@
+name: "Push events daily"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '5 15 * * *'
+
+jobs:
+  syndicate:
+    name: "Post events"
+    runs-on: self-hosted
+
+    steps:
+    - name: "Check out repository"
+      uses: actions/checkout@v3
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        bundler-cache: true
+
+    - run: bundle exec ruby main.rb --destinations=TD
+      env:
+        SYN_ENV: production
+        TD_SLACK_WEBHOOK: ${{ secrets.TD_SLACK_WEBHOOK }}
